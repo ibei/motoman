@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: motoman_sia10f_support
+    relative_path: urdf/sia10f.urdf
+  SRDF:
+    relative_path: config/motoman_sia10f.srdf
+  CONFIG:
+    author_name: su
+    author_email: catcher2333@163.com
+    generated_timestamp: 1518078010

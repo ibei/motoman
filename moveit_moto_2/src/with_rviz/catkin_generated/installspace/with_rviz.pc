@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: with_rviz
+Description: Description of with_rviz
+Version: 0.0.0
+Cflags: 
+Libs: -L/usr/local/lib 
+Requires: 

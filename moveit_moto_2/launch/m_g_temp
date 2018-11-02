@@ -1,0 +1,9 @@
+  <arg name="load_robot_description" default="true"/>
+  <arg name="urdf_model" default="$(find motoman_sia10f_support)/urdf/sia10f.urdf"/>
+  <arg name="srdf_model" default="$(find moveit_moto_2)/config/motoman_sia10f.srdf"/>
+  <arg name="joint_limits_config" default="$(find moveit_moto_2)/config/joint_limits.yaml"/>
+  <arg name="kinematics_config" default="$(find moveit_moto_2)/config/kinematics.yaml"/>
+  <arg name="controllers_config" default="$(find moveit_moto_2)/config/controllers.yaml"/>
+  <arg name="ompl_config" default="$(find moveit_moto_2)/config/ompl_planning.yaml"/>
+  <arg name="use_ompl" default="false"/>
+  <arg name="use_stomp" default="false"/> 

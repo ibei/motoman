@@ -1,0 +1,29 @@
+import matplotlib.pyplot as plt
+
+#filename = 'radish.txt'
+filename = 'pepper.txt'
+X,Y = [],[]
+with open(filename, 'r') as f:#1
+    lines = f.readlines()#2
+    for line in lines:#3
+        value = [float(s) for s in line.split()]#4
+        X.append(value[0])#5
+        Y.append(value[1])
+t=[0.135]*(int(X[-1])+1)
+	#plt.plot(X,t)
+#plt.plot(X, Y,'g^',X,t,'r--')
+plt.plot(X, Y,'b--',X,t,'r--')
+#plt.plot(X, Y,'b--')
+plt.xlabel('time')
+plt.ylabel('area_ratio')
+#plt.title('Shaking tomato')
+#plt.title('Shaking radish')
+plt.title('Shaking pepper')
+#plt.text(60, .15, r'$\mu=100,\ \sigma=15$')
+plt.text(2800, .125, 'target_ratio',fontsize=12)
+plt.text(2800, .004, 'realtime_ratio',fontsize=12)
+#plt.axis([40, 160, 0, 0.03])
+plt.grid(True)
+plt.show()
+
+

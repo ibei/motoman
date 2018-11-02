@@ -1,0 +1,223 @@
+#!/usr/bin/python
+
+import roslib; roslib.load_manifest('motoman_driver')
+import rospy
+import sensor_msgs.msg
+import trajectory_msgs.msg
+import copy
+import rospy,sys
+import moveit_commander
+
+#from std_msgs.msg import Duration
+
+#from motoman_control.msg import JointAnglesDuration,JointAngles
+#from trajectory_msgs.msg import JointTrajectoryPoint
+
+from moveit_commander import MoveGroupCommander, PlanningSceneInterface
+from moveit_msgs.msg import PlanningScene, ObjectColor
+from geometry_msgs.msg import PoseStamped, Pose 
+from copy import deepcopy
+from moveit_msgs.msg import Grasp,GripperTranslation,MoveItErrorCodes
+from tf.transformations import quaternion_from_euler
+#from robotiq_gripper_node.srv import *
+
+
+class PickAndPlace:
+	def setColor(self,name,r,g,b,a=0.9):
+			color=ObjectColor()
+			color.id=name
+			color.color.r=r
+			color.color.g=g
+			color.color.b=b
+			color.color.a=a
+			self.colors[name]=color
+		    
+	def sendColors(self):
+			p=PlanningScene()
+			p.is_diff=True
+			for color in self.colors.values():
+				p.object_colors.append(color)
+			self.scene_pub.publish(p)
+			
+	def setupSence(self):
+		
+		
+		#box1_size=[0.1,0.05,0.03]
+		box2_size=[0.05,0.05,0.1]
+		r_tool_size=[0.03,0.01,0.06]
+		l_tool_size=[0.03,0.01,0.06]
+		
+		table_pose=PoseStamped()
+		table_pose.header.frame_id=self.reference_frame
+		table_pose.pose.position.x=0.75
+		table_pose.pose.position.y=0.0
+		table_pose.pose.position.z=self.table_ground+self.table_size[2]/2.0
+		table_pose.pose.orientation.w=1.0
+		self.scene.add_box(self.table_id,table_pose,self.table_size)
+		
+		
+		box2_pose=PoseStamped()
+		box2_pose.header.frame_id=self.reference_frame
+		box2_pose.pose.position.x=0.6
+		box2_pose.pose.position.y=-0.05
+		box2_pose.pose.position.z=self.table_ground+self.table_size[2]+box2_size[2]/2.0
+		box2_pose.pose.orientation.w=1.0
+		self.scene.add_box(self.box2_id,box2_pose,box2_size)	
+		
+		#left gripper
+		l_p=PoseStamped()
+		l_p.header.frame_id=self.arm_end_effector_link
+		l_p.pose.position.x=0.00
+		l_p.pose.position.y=0.04
+		l_p.pose.position.z=0.04
+		l_p.pose.orientation.w=1
+		self.scene.attach_box(self.arm_end_effector_link,'l_tool',l_p,l_tool_size)	
+		
+		#right gripper
+		r_p=PoseStamped()
+		r_p.header.frame_id=self.arm_end_effector_link
+		r_p.pose.position.x=0.00
+		r_p.pose.position.y=-0.04
+		r_p.pose.position.z=0.04
+		r_p.pose.orientation.w=1
+		self.scene.attach_box(self.arm_end_effector_link,'r_tool',r_p,r_tool_size)	
+		
+		
+	def __init__(self):
+		moveit_commander.roscpp_initialize(sys.argv)
+		rospy.init_node('moveit_demo')
+		self.scene=PlanningSceneInterface()
+		self.scene_pub=rospy.Publisher('planning_scene',PlanningScene)
+		#self.gripperCtrl=rospy.ServiceProxy("/two_finger/gripper/gotoPositionUntilTouch",SetPosition)
+		#self.m2j=rospy.Publisher("/two_finger/motoman_control/move_to_joint",JointAnglesDuration,queue_size=1,latch=True)
+		self.colors=dict()
+		rospy.sleep(1)
+		arm=MoveGroupCommander('arm')
+		cartesian=rospy.get_param('~cartesian',True)
+		#gripper=MoveGroupCommander('gripper')
+		self.arm_end_effector_link=arm.get_end_effector_link()
+		#gripper_end_effector_link=gripper.get_end_effector_link()
+		arm.set_goal_position_tolerance(0.005)
+		arm.set_goal_orientation_tolerance(0.025)
+		arm.allow_replanning(True)
+		#gripper.set_goal_position_tolerance(0.01)
+		#gripper.set_goal_orientation_tolerance(0.05)
+		#gripper.allow_replanning(True)
+		
+		self.reference_frame='base_link'
+		arm.set_pose_reference_frame(self.reference_frame)
+		#gripper.set_pose_reference_frame(reference_frame)
+		arm.set_planning_time(5)
+		#gripper.set_planning_time(5)
+		
+		#scene planning
+		
+		self.table_id='table'
+		self.box2_id='box2'
+		self.target_id='target_object'
+		#scene.remove_world_object(box1_id)
+		self.scene.remove_world_object(self.box2_id)
+		self.scene.remove_world_object(self.table_id)
+		self.scene.remove_world_object(self.target_id)
+		self.table_ground=0.5
+		self.table_size=[0.5,1,0.01]
+		self.setupSence()
+		
+		target_size=[0.05,0.05,0.1]
+		#target
+		target_pose=PoseStamped()
+		target_pose.header.frame_id=self.reference_frame
+		target_pose.pose.position.x=0.6
+		target_pose.pose.position.y=0.05
+		target_pose.pose.position.z=self.table_ground+self.table_size[2]+target_size[2]/2.0
+		target_pose.pose.orientation.x=0
+		target_pose.pose.orientation.y=0
+		target_pose.pose.orientation.z=0
+		target_pose.pose.orientation.w=1
+		self.scene.add_box(self.target_id,target_pose,target_size)	
+		
+		#grasp
+		g_p=PoseStamped()
+		g_p.header.frame_id=self.arm_end_effector_link
+		g_p.pose.position.x=0.00
+		g_p.pose.position.y=-0.00
+		g_p.pose.position.z=0.025
+		g_p.pose.orientation.w=0.707
+		g_p.pose.orientation.x=0
+		g_p.pose.orientation.y=-0.707
+		g_p.pose.orientation.z=0
+		
+		#set color
+		self.setColor(self.table_id,0.8,0,0,1.0)
+		self.setColor(self.box2_id,0.8,0.4,0,1.0)
+		self.setColor('r_tool',0.8,0,0)
+		self.setColor('l_tool',0.8,0,0)
+		self.setColor(self.target_id,0,1,0)
+		self.sendColors()
+		
+		#motion planning
+		
+		arm.set_named_target("slight")
+		arm.go()
+		rospy.sleep(2)
+		arm.set_named_target("initial_arm")
+		arm.go()
+		rospy.sleep(2)
+		start_pose=arm.get_current_pose(self.arm_end_effector_link).pose
+		rospy.sleep(2)
+
+		grasp_pose=target_pose
+		grasp_pose.pose.position.x-=0.15
+		#grasp_pose.pose.position.z=
+		grasp_pose.pose.orientation.x=0
+		grasp_pose.pose.orientation.y=0.707
+		grasp_pose.pose.orientation.z=0
+		grasp_pose.pose.orientation.w=0.707
+
+		waypoints_1=[]
+		waypoints_2=[]
+		if cartesian:
+			waypoints_1.append(start_pose)	
+			waypoints_1.append(deepcopy(grasp_pose.pose))
+			#waypoints_1.append(deepcopy(grasp_pose.pose))
+			fraction=0.0
+			#maxtries=300
+			attempts=0
+			#arm.set_start_state__1to_current_state()
+			#plan the cartesian path connecting waypoints
+			#while fraction<1.0 and attempts<maxtries:
+			while fraction!=1:
+				(plan_1,fraction)=arm.compute_cartesian_path(waypoints_1,0.01,0.0,True)
+				attempts+=1
+				if  (attempts %300==0 and fraction!=1.0):
+					rospy.loginfo("path planning failed with  " + str(attempts)+" attempts")
+				if  KeyboardInterrupt:
+					break
+			rospy.loginfo("path compute successfully with "+str(attempts)+" sttempts.")
+			rospy.loginfo("Arm moving.")	
+			arm.execute(plan_1)
+			rospy.sleep(6)
+			
+			
+		
+				
+					
+					
+
+		#remove and shut down
+		#self.scene.remove_attached_object(self.arm_end_effector_link,'l_tool')
+		#self.scene.remove_attached_object(self.arm_end_effector_link,'r_tool')
+		moveit_commander.roscpp_shutdown()
+		moveit_commander.os._exit(0)
+		
+		
+		
+		
+		
+		
+if __name__=="__main__":
+	try:
+			PickAndPlace()
+	except KeyboardInterrupt:
+			raise
+		

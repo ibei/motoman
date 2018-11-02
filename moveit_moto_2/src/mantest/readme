@@ -1,0 +1,5 @@
+step1.  load description    (roslaunch motomansia10f_cmn.launch)
+step2.  open  Rviz (please install rviz first)  
+step3.  load  dummy_moto2.py
+step4.  load  follow_q_traj1.py
+  then  you will see the model moving

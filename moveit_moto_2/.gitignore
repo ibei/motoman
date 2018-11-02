@@ -1,0 +1,5 @@
+build
+devel
+src/motoman_control
+src/ay*
+src/jog_arm

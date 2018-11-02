@@ -1,0 +1,14 @@
+<package>
+  <description brief="with_gazebo">
+
+     with_gazebo
+
+  </description>
+  <author>tjosh</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/with_gazebo</url>
+
+</package>
+
+

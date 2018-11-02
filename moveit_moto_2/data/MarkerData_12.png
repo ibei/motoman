@@ -1,0 +1,37 @@
+ows_spddir .resize(2*flow.size());
+        sensor_msg.flows_amount .resize(flow.size());
+        int i(0);
+        for(std::list<TFlowElement>::const_iterator itr(flow.begin()),itr_end(flow.end());
+            itr!=itr_end; ++itr,++i)
+        {
+          sensor_msg.flows_xy[2*i+0]= itr->X;
+          sensor_msg.flows_xy[2*i+1]= itr->Y;
+          sensor_msg.flows_vxy[2*i+0]= itr->VX;
+          sensor_msg.flows_vxy[2*i+1]= itr->VY;
+          sensor_msg.flows_spddir[2*i+0]= itr->Speed;
+          sensor_msg.flows_spddir[2*i+1]= itr->Angle;
+          sensor_msg.flows_amount[i]= itr->Amount;
+        }
+
+        sensor_msg.flow_avr_xy.resize(2);
+        sensor_msg.flow_avr_vxy.resize(2);
+        sensor_msg.flow_avr_spddir.resize(2);
+        sensor_msg.flow_avr_xy[0]= avr_xy[0];
+        sensor_msg.flow_avr_xy[1]= avr_xy[1];
+        sensor_msg.flow_avr_vxy[0]= avr_vel[0];
+        sensor_msg.flow_avr_vxy[1]= avr_vel[1];
+        sensor_msg.flow_avr_spddir[0]= avr_spddir[0];
+        sensor_msg.flow_avr_spddir[1]= avr_spddir[1];
+
+        sensor_pub.publish(sensor_msg);
+      }
+
+      std::cerr<<"ratio:";
+      for(int i(0); i<ColDetector.Size(); ++i)
+        std::cerr<<" "<<ColDetector.Ratio(i);
+      std::cerr<<"\t spd,angle: "<<avr_spddir<<std::endl;
+
+      VideoOut.Step(disp_img);
+      VideoOut.VizRec(disp_img);
+      cv::imshow("color_detector", disp_img);
+
