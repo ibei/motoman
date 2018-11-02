@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node pkg="with_rviz" type="dummy_moto2.py" name="dummy_moto2" output="screen" />
-</launch>
